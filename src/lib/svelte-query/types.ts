@@ -7,7 +7,9 @@ import type {
 
 import type {
 	CreateQueryOptions as TanstackCreateQueryOptions,
-	CreateQueryResult
+	CreateQueryResult,
+	CreateMutationOptions as UseTanstackMutationOptions,
+	CreateMutationResult
 } from '@tanstack/svelte-query';
 
 export type QueryFetcher<Operations extends OperationsDefinition> = {
@@ -23,6 +25,22 @@ export type QueryFetcher<Operations extends OperationsDefinition> = {
 		>
 	>(
 		query: RequestOptions
+	): Promise<Data>;
+};
+
+export type MutationFetcher<Operations extends OperationsDefinition> = {
+	<
+		OperationName extends Extract<keyof Operations['mutations'], string>,
+		Data extends Operations['mutations'][OperationName]['data'] = Operations['mutations'][OperationName]['data'],
+		RequestOptions extends OperationRequestOptions<
+			Extract<keyof Operations['mutations'], string>,
+			Operations['mutations'][OperationName]['input']
+		> = OperationRequestOptions<
+			Extract<keyof Operations['mutations'], string>,
+			Operations['mutations'][OperationName]['input']
+		>
+	>(
+		mutation: RequestOptions
 	): Promise<Data>;
 };
 
@@ -68,4 +86,24 @@ export type CreateQuery<
 		options: CreateQueryOptions<Data, ClientResponseError, Input, OperationName, LiveQuery> &
 			ExtraOptions
 	): CreateQueryResult<Data, ClientResponseError> & { isSubscribed?: boolean };
+};
+
+export type UseMutationOptions<Data, Error, Input, OperationName extends string> = Omit<
+	UseTanstackMutationOptions<Data, Error, Input, (OperationName | Input | undefined)[]>,
+	'mutationKey' | 'mutationFn'
+> & {
+	operationName: OperationName;
+};
+
+export type CreateMutation<
+	Operations extends OperationsDefinition,
+	ExtraOptions extends object = {}
+> = {
+	<
+		OperationName extends Extract<keyof Operations['mutations'], string>,
+		Input extends Operations['mutations'][OperationName]['input'] = Operations['mutations'][OperationName]['input'],
+		Data extends Operations['mutations'][OperationName]['data'] = Operations['mutations'][OperationName]['data']
+	>(
+		options: UseMutationOptions<Data, ClientResponseError, Input, OperationName> & ExtraOptions
+	): CreateMutationResult<Data, ClientResponseError, Input>;
 };

@@ -1,8 +1,14 @@
-import { createQuery as tanstackCreateQuery } from '@tanstack/svelte-query';
+import {
+	createQuery as tanstackCreateQuery,
+	createMutation as tanstackCreateMutation,
+	useQueryClient
+} from '@tanstack/svelte-query';
 import type { QueryFunctionContext } from '@tanstack/svelte-query';
-import type { OperationsDefinition, Client } from '@wundergraph/sdk/client';
+import type { OperationsDefinition, LogoutOptions, Client } from '@wundergraph/sdk/client';
 // import { serialize } from '@wundergraph/sdk/internal';
-import type { CreateQuery, QueryFetcher, QueryKey } from './types';
+import type { CreateMutation, CreateQuery, MutationFetcher, QueryFetcher, QueryKey } from './types';
+
+export const userQueryKey = 'wg_user';
 
 export default function createQueryUtils<Operations extends OperationsDefinition>(client: Client) {
 	const queryFetcher: QueryFetcher<Operations> = async (query) => {
@@ -19,6 +25,34 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 		return [operationName, input];
 	};
 
+	const mutationFetcher: MutationFetcher<Operations> = async (mutation) => {
+		const result = await client.mutate(mutation);
+
+		if (result.error) {
+			throw result.error;
+		}
+
+		return result.data;
+	};
+
+	/**
+	 * Execute a WunderGraph query.
+	 *
+	 * @usage
+	 * ```ts
+	 * const { data, error, isLoading } = createQuery({
+	 *   operationName: 'Weather',
+	 * })
+	 * ```
+	 *
+	 * All queries support liveQuery by default, enabling this will set up a realtime subscription.
+	 * ```ts
+	 * const { data, error, isLoading, isSubscribed } = useQuery({
+	 *   operationName: 'Weather',
+	 *   liveQuery: true,
+	 * })
+	 * ```
+	 */
 	const createQuery: CreateQuery<Operations> = (options) => {
 		const { operationName, liveQuery, input, enabled, refetchOnWindowFocus, ...queryOptions } =
 			options;
@@ -56,5 +90,44 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 		return result;
 	};
 
-	return { createQuery };
+	/**
+	 * Execute a WunderGraph mutation.
+	 *
+	 * @usage
+	 * ```ts
+	 * const { mutate, data, error, isLoading } = createMutation({
+	 *   operationName: 'SetName'
+	 * })
+	 *
+	 * mutate({
+	 *   name: 'John Doe'
+	 * })
+	 * ```
+	 */
+	const createMutation: CreateMutation<Operations> = (options) => {
+		const { operationName, ...mutationOptions } = options;
+
+		return tanstackCreateMutation({
+			mutationKey: [operationName],
+			mutationFn: (input) => mutationFetcher({ operationName, input }),
+			...mutationOptions
+		});
+	};
+
+	const getAuth = () => {
+		const queryClient = useQueryClient();
+
+		return {
+			login: (authProviderID: Operations['authProvider'], redirectURI?: string | undefined) =>
+				client.login(authProviderID, redirectURI),
+			logout: async (options?: LogoutOptions | undefined) => {
+				const result = await client.logout(options);
+				// reset user in the cache and don't trigger a refetch
+				queryClient.setQueryData([userQueryKey], null);
+				return result;
+			}
+		};
+	};
+
+	return { createQuery, createMutation, getAuth };
 }
