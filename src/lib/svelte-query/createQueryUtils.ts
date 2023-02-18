@@ -7,6 +7,7 @@ import type { QueryFunctionContext } from '@tanstack/svelte-query';
 import type { OperationsDefinition, LogoutOptions, Client } from '@wundergraph/sdk/client';
 // import { serialize } from '@wundergraph/sdk/internal';
 import type {
+	CreateFileUpload,
 	CreateMutation,
 	CreateQuery,
 	GetUser,
@@ -157,5 +158,34 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 		);
 	};
 
-	return { createQuery, createMutation, getAuth, getUser };
+	/**
+	 * Upload a file to S3 compatible storage.
+	 *
+	 * @usage
+	 * ```ts
+	 * const { upload, data, error } = createFileUpload()
+	 *
+	 * const uploadFile = (file: File) => {
+	 *  upload(file)
+	 * }
+	 * ```
+	 */
+	const createFileUpload: CreateFileUpload<Operations> = (options) => {
+		const { mutate, mutateAsync, ...mutation } = tanstackCreateMutation(
+			['uploadFiles'],
+			async (input) => {
+				const resp = await client.uploadFiles(input);
+				return resp.fileKeys;
+			},
+			options
+		) as any;
+
+		return {
+			upload: mutate,
+			uploadAsync: mutateAsync,
+			...mutation
+		};
+	};
+
+	return { createQuery, createMutation, getAuth, getUser, createFileUpload };
 }

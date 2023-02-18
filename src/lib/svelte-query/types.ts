@@ -3,13 +3,15 @@ import type {
 	FetchUserRequestOptions,
 	OperationsDefinition,
 	WithInput,
-	ClientResponseError
+	ClientResponseError,
+	UploadRequestOptions,
+	UploadRequestOptionsWithProfile
 } from '@wundergraph/sdk/client';
 
 import type {
 	CreateQueryOptions as TanstackCreateQueryOptions,
 	CreateQueryResult,
-	CreateMutationOptions as UseTanstackMutationOptions,
+	CreateMutationOptions as TanstackCreateMutationOptions,
 	CreateMutationResult
 } from '@tanstack/svelte-query';
 
@@ -90,7 +92,7 @@ export type CreateQuery<
 };
 
 export type UseMutationOptions<Data, Error, Input, OperationName extends string> = Omit<
-	UseTanstackMutationOptions<Data, Error, Input, (OperationName | Input | undefined)[]>,
+	TanstackCreateMutationOptions<Data, Error, Input, (OperationName | Input | undefined)[]>,
 	'mutationKey' | 'mutationFn'
 > & {
 	operationName: OperationName;
@@ -120,4 +122,44 @@ export type GetUser<Operations extends OperationsDefinition> = {
 		Operations['user'],
 		ClientResponseError
 	>;
+};
+
+export type UseUploadOptions = Omit<
+	TanstackCreateMutationOptions<string[], ClientResponseError, UploadRequestOptions, 'uploadFiles'>,
+	'fetcher'
+>;
+
+export type CreateFileUpload<Operations extends OperationsDefinition> = {
+	(options?: UseUploadOptions): Omit<
+		TanstackCreateMutationOptions<string[], ClientResponseError, UploadRequestOptions>,
+		'mutate'
+	> & {
+		upload: <
+			ProviderName extends Extract<keyof Operations['s3Provider'], string>,
+			ProfileName extends Extract<
+				keyof Operations['s3Provider'][ProviderName]['profiles'],
+				string
+			> = Extract<keyof Operations['s3Provider'][ProviderName]['profiles'], string>,
+			Meta extends Operations['s3Provider'][ProviderName]['profiles'][ProfileName] = Operations['s3Provider'][ProviderName]['profiles'][ProfileName]
+		>(
+			options: ProfileName extends string
+				? UploadRequestOptionsWithProfile<ProviderName, ProfileName, Meta>
+				: UploadRequestOptions<ProviderName>,
+			config?: UseUploadOptions
+		) => Promise<string[]>;
+
+		uploadAsync: <
+			ProviderName extends Extract<keyof Operations['s3Provider'], string>,
+			ProfileName extends Extract<
+				keyof Operations['s3Provider'][ProviderName]['profiles'],
+				string
+			> = Extract<keyof Operations['s3Provider'][ProviderName]['profiles'], string>,
+			Meta extends Operations['s3Provider'][ProviderName]['profiles'][ProfileName] = Operations['s3Provider'][ProviderName]['profiles'][ProfileName]
+		>(
+			options: Operations['s3Provider'][ProviderName]['hasProfiles'] extends true
+				? UploadRequestOptionsWithProfile<ProviderName, ProfileName, Meta>
+				: UploadRequestOptions<ProviderName>,
+			config?: UseUploadOptions
+		) => Promise<string[]>;
+	};
 };
