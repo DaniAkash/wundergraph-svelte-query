@@ -10,10 +10,13 @@ import type {
 	CreateFileUpload,
 	CreateMutation,
 	CreateQuery,
+	CreateSubscribeToProps,
+	CreateSubscription,
 	GetUser,
 	MutationFetcher,
 	QueryFetcher,
-	QueryKey
+	QueryKey,
+	SubscribeToOptions
 } from './types';
 
 export const userQueryKey = 'wg_user';
@@ -77,7 +80,7 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 			refetchOnWindowFocus: liveQuery ? false : refetchOnWindowFocus
 		});
 
-		// TODO: Learn about how subscription works
+		// TODO: Learn about how to build subscription utility in svelte
 		// const { isSubscribed } = useSubscribeTo({
 		// 	queryHash,
 		// 	operationName,
@@ -187,5 +190,85 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 		};
 	};
 
-	return { createQuery, createMutation, getAuth, getUser, createFileUpload };
+	// Set up a subscription that can be aborted.
+	const subscribeTo = (options: SubscribeToOptions) => {
+		const abort = new AbortController();
+
+		const { onSuccess, onError, onResult, onAbort, ...subscription } = options;
+
+		subscription.abortSignal = abort.signal;
+
+		client.subscribe(subscription, onResult).catch(onError);
+
+		return () => {
+			onAbort?.();
+			abort.abort();
+		};
+	};
+
+	// Helper function used in createQuery and createSubscription
+	const createSubscribeTo = (props: CreateSubscribeToProps) => {
+		const client = useQueryClient();
+		const {
+			queryHash,
+			operationName,
+			input,
+			enabled,
+			liveQuery,
+			subscribeOnce,
+			resetOnMount,
+			onSuccess,
+			onError
+		} = props;
+
+		//TODO: Svelte style utility to setup subscriptions
+	};
+
+	/**
+	 * createSubscription
+	 *
+	 * Subscribe to subscription operations.
+	 *
+	 * @usage
+	 * ```ts
+	 * const { data, error, isLoading, isSubscribed } = useSubscription({
+	 *   operationName: 'Countdown',
+	 * })
+	 */
+	const createSubscription: CreateSubscription<Operations> = (options) => {
+		const { enabled = true, operationName, input, subscribeOnce, onSuccess, onError } = options;
+		// const queryHash = serialize([operationName, input]);
+
+		const subscription = tanstackCreateQuery<any, any, any, any>({
+			queryKey: [operationName, input],
+			enabled: false // we update the cache async
+		});
+
+		// TODO: Learn about how to build subscription utility in svelte
+		// const { isSubscribed } = useSubscribeTo({
+		// 	queryHash,
+		// 	operationName,
+		// 	input,
+		// 	subscribeOnce,
+		// 	enabled,
+		// 	onSuccess,
+		// 	onError
+		// });
+
+		return {
+			...subscription,
+			// TODO: set actual value
+			isSubscribed: false
+		};
+	};
+
+	return {
+		createQuery,
+		createMutation,
+		getAuth,
+		getUser,
+		createFileUpload,
+		queryKey,
+		createSubscription
+	};
 }

@@ -1,4 +1,6 @@
 import type {
+	ClientResponse,
+	SubscriptionRequestOptions,
 	OperationRequestOptions,
 	FetchUserRequestOptions,
 	OperationsDefinition,
@@ -91,6 +93,45 @@ export type CreateQuery<
 	): CreateQueryResult<Data, ClientResponseError> & { isSubscribed?: boolean };
 };
 
+export type UseSubscriptionOptions<
+	Data,
+	Error,
+	Input extends object | undefined,
+	OperationName extends string
+> = WithInput<
+	Input,
+	{
+		operationName: OperationName;
+		subscribeOnce?: boolean;
+		resetOnMount?: boolean;
+		enabled?: boolean;
+		input?: Input;
+		onSuccess?(response: ClientResponse<Data>): void;
+		onError?(error: Error): void;
+	}
+>;
+
+export type CreateSubscription<
+	Operations extends OperationsDefinition,
+	ExtraOptions extends object = {}
+> = {
+	<
+		OperationName extends Extract<keyof Operations['subscriptions'], string>,
+		Input extends Operations['subscriptions'][OperationName]['input'] = Operations['subscriptions'][OperationName]['input'],
+		Data extends Operations['subscriptions'][OperationName]['data'] = Operations['subscriptions'][OperationName]['data']
+	>(
+		options: UseSubscriptionOptions<Data | undefined, ClientResponseError, Input, OperationName> &
+			ExtraOptions
+	): CreateSubscriptionResult<Data, ClientResponseError>;
+};
+
+export type CreateSubscriptionResult<Data, Error = ClientResponseError> = CreateQueryResult<
+	Data,
+	Error
+> & {
+	isSubscribed: boolean;
+};
+
 export type UseMutationOptions<Data, Error, Input, OperationName extends string> = Omit<
 	TanstackCreateMutationOptions<Data, Error, Input, (OperationName | Input | undefined)[]>,
 	'mutationKey' | 'mutationFn'
@@ -163,3 +204,18 @@ export type CreateFileUpload<Operations extends OperationsDefinition> = {
 		) => Promise<string[]>;
 	};
 };
+
+export interface SubscribeToOptions extends SubscriptionRequestOptions {
+	onResult(response: ClientResponse): void;
+	onSuccess?(response: ClientResponse): void;
+	onError?(error: ClientResponseError): void;
+	onAbort?(): void;
+}
+
+export interface CreateSubscribeToProps extends SubscriptionRequestOptions {
+	queryHash: string;
+	enabled?: boolean;
+	resetOnMount?: boolean;
+	onSuccess?(response: ClientResponse): void;
+	onError?(error: ClientResponseError): void;
+}
