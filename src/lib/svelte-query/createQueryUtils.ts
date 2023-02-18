@@ -6,7 +6,14 @@ import {
 import type { QueryFunctionContext } from '@tanstack/svelte-query';
 import type { OperationsDefinition, LogoutOptions, Client } from '@wundergraph/sdk/client';
 // import { serialize } from '@wundergraph/sdk/internal';
-import type { CreateMutation, CreateQuery, MutationFetcher, QueryFetcher, QueryKey } from './types';
+import type {
+	CreateMutation,
+	CreateQuery,
+	GetUser,
+	MutationFetcher,
+	QueryFetcher,
+	QueryKey
+} from './types';
 
 export const userQueryKey = 'wg_user';
 
@@ -129,5 +136,26 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 		};
 	};
 
-	return { createQuery, createMutation, getAuth };
+	/**
+	 * Return the logged in user.
+	 *
+	 * @usage
+	 * ```ts
+	 * const { user, error, isLoading } = useUser()
+	 * ```
+	 */
+	const getUser: GetUser<Operations> = (options) => {
+		const { revalidate, ...queryOptions } = options || {};
+		return tanstackCreateQuery(
+			[userQueryKey],
+			({ signal }) =>
+				client.fetchUser({
+					revalidate,
+					abortSignal: signal
+				}),
+			queryOptions
+		);
+	};
+
+	return { createQuery, createMutation, getAuth, getUser };
 }

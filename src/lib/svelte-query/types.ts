@@ -1,5 +1,6 @@
 import type {
 	OperationRequestOptions,
+	FetchUserRequestOptions,
 	OperationsDefinition,
 	WithInput,
 	ClientResponseError
@@ -106,4 +107,17 @@ export type CreateMutation<
 	>(
 		options: UseMutationOptions<Data, ClientResponseError, Input, OperationName> & ExtraOptions
 	): CreateMutationResult<Data, ClientResponseError, Input>;
+};
+
+export interface UseUserOptions<User>
+	extends FetchUserRequestOptions,
+		TanstackCreateQueryOptions<User, ClientResponseError, User, [string]> {
+	enabled?: boolean;
+}
+
+export type GetUser<Operations extends OperationsDefinition> = {
+	(options?: UseUserOptions<Operations['user']>): CreateQueryResult<
+		Operations['user'],
+		ClientResponseError
+	>;
 };
