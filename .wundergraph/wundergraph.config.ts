@@ -4,20 +4,20 @@ import {
 	cors,
 	EnvironmentVariable,
 	introspect,
-	templates,
+	templates
 } from '@wundergraph/sdk';
 import server from './wundergraph.server';
 import operations from './wundergraph.operations';
 
 const spaceX = introspect.graphql({
 	apiNamespace: 'spacex',
-	url: 'https://spacex-api.fly.dev/graphql/',
+	url: 'https://spacex-api.fly.dev/graphql/'
 });
 
 const starwars = introspect.graphql({
 	apiNamespace: 'starwars',
 	url: 'https://swapi-graphql.netlify.app/.netlify/functions/index'
-})
+});
 
 // configureWunderGraph emits the configuration
 configureWunderGraphApplication({
@@ -26,16 +26,16 @@ configureWunderGraphApplication({
 	operations,
 	codeGenerators: [
 		{
-			templates: [...templates.typescript.all],
+			templates: [...templates.typescript.all]
 		},
 		{
 			templates: [templates.typescript.client],
-			path: '../components/generated',
-		},
+			path: '../src/lib/generated'
+		}
 	],
 	cors: {
 		...cors.allowAll,
-		allowedOrigins: process.env.NODE_ENV === 'production' ? ['http://localhost:3000'] : ['http://localhost:3000'],
+		allowedOrigins: ['http://localhost:5173']
 	},
 	authentication: {
 		cookieBased: {
@@ -49,10 +49,10 @@ configureWunderGraphApplication({
 				'WUNDERGRAPH_SECURE_COOKIE_BLOCK_KEY',
 				'00000000000000000000000000000000'
 			), // must be of length 32
-			csrfTokenSecret: new EnvironmentVariable('WUNDERGRAPH_CSRF_TOKEN_SECRET', '00000000000'), // must be of length 11
-		},
+			csrfTokenSecret: new EnvironmentVariable('WUNDERGRAPH_CSRF_TOKEN_SECRET', '00000000000') // must be of length 11
+		}
 	},
 	security: {
-		enableGraphQLEndpoint: process.env.NODE_ENV !== 'production',
-	},
+		enableGraphQLEndpoint: process.env.NODE_ENV !== 'production'
+	}
 });

@@ -4,7 +4,6 @@
 	const query = createQuery({
 		operationName: "Starwars",
 	})
-
 </script>
 
 <div class="counter">
