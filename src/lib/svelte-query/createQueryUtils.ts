@@ -141,7 +141,7 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 	 *
 	 * @usage
 	 * ```ts
-	 * const { user, error, isLoading } = useUser()
+	 * const { user, error, isLoading } = getUser()
 	 * ```
 	 */
 	const getUser: GetUser<Operations> = (options) => {
