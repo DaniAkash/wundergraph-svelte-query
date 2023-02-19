@@ -3,8 +3,8 @@ import {
 	createMutation as tanstackCreateMutation,
 	useQueryClient
 } from '@tanstack/svelte-query';
-import { writable } from 'svelte/store';
-import { onMount, onDestroy } from 'svelte';
+import { readable } from 'svelte/store';
+import { onMount } from 'svelte';
 import type { QueryFunctionContext } from '@tanstack/svelte-query';
 import type { OperationsDefinition, LogoutOptions, Client } from '@wundergraph/sdk/client';
 import { serialize } from '@wundergraph/sdk/internal';
@@ -60,7 +60,7 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 	 *
 	 * All queries support liveQuery by default, enabling this will set up a realtime subscription.
 	 * ```ts
-	 * const { data, error, isLoading, isSubscribed } = useQuery({
+	 * const { data, error, isLoading, subscriptionState } = useQuery({
 	 *   operationName: 'Weather',
 	 *   liveQuery: true,
 	 * })
@@ -70,8 +70,7 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 		const { operationName, liveQuery, input, enabled, refetchOnWindowFocus, ...queryOptions } =
 			options;
 
-		// TODO: will be needed for subscriptions
-		// const queryHash = serialize([operationName, input]);
+		const queryHash = serialize([operationName, input]);
 
 		const result = tanstackCreateQuery({
 			queryKey: queryKey({ operationName, input }),
@@ -82,22 +81,20 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 			refetchOnWindowFocus: liveQuery ? false : refetchOnWindowFocus
 		});
 
-		// TODO: Learn about how to build subscription utility in svelte
-		// const { isSubscribed } = useSubscribeTo({
-		// 	queryHash,
-		// 	operationName,
-		// 	input,
-		// 	liveQuery,
-		// 	enabled: options.enabled !== false && liveQuery,
-		// 	onSuccess: options.onSuccess,
-		// 	onError: options.onError
-		// });
+		const subscriptionState = createSubscribeTo({
+			queryHash,
+			operationName,
+			input,
+			liveQuery,
+			enabled: options.enabled !== false && liveQuery,
+			onSuccess: options.onSuccess,
+			onError: options.onError
+		});
 
 		if (liveQuery) {
 			return {
-				...result
-				// TODO: Subscription not ready yet
-				// isSubscribed
+				...result,
+				subscriptionState
 			};
 		}
 		return result;
@@ -225,58 +222,58 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 		let startedAtRef: number | null = null;
 		let unsubscribe: ReturnType<typeof subscribeTo>;
 
-		const state = writable({
-			isLoading: false,
-			isSubscribed: false
-		});
-
 		onMount(() => {
 			if (!startedAtRef && resetOnMount) {
 				client.removeQueries([operationName, input]);
 			}
 		});
 
-		if (enabled) {
-			state.set({ isLoading: true, isSubscribed: false });
-			unsubscribe = subscribeTo({
-				operationName,
-				input,
-				liveQuery,
-				subscribeOnce,
-				onError(error) {
-					state.set({ isLoading: false, isSubscribed: false });
-					onError?.(error);
-					startedAtRef = null;
-				},
-				onResult(result) {
-					if (!startedAtRef) {
-						state.set({ isLoading: false, isSubscribed: true });
-						onSuccess?.(result);
-						startedAtRef = new Date().getTime();
-					}
-
-					// Promise is not handled because we are not interested in the result
-					// Errors are handled by React Query internally
-					client.setQueryData([operationName, input], () => {
-						if (result.error) {
-							throw result.error;
+		const subscriptionState = readable(
+			{
+				isLoading: false,
+				isSubscribed: false
+			},
+			function start(set) {
+				set({ isLoading: true, isSubscribed: false });
+				unsubscribe = subscribeTo({
+					operationName,
+					input,
+					liveQuery,
+					subscribeOnce,
+					onError(error) {
+						set({ isLoading: false, isSubscribed: false });
+						onError?.(error);
+						startedAtRef = null;
+					},
+					onResult(result) {
+						if (!startedAtRef) {
+							set({ isLoading: false, isSubscribed: true });
+							onSuccess?.(result);
+							startedAtRef = new Date().getTime();
 						}
 
-						return result.data;
-					});
-				},
-				onAbort() {
-					state.set({ isLoading: false, isSubscribed: false });
-					startedAtRef = null;
-				}
-			});
-		}
+						// Promise is not handled because we are not interested in the result
+						// Errors are handled by React Query internally
+						client.setQueryData([operationName, input], () => {
+							if (result.error) {
+								throw result.error;
+							}
 
-		onDestroy(() => {
-			unsubscribe?.();
-		});
+							return result.data;
+						});
+					},
+					onAbort() {
+						set({ isLoading: false, isSubscribed: false });
+						startedAtRef = null;
+					}
+				});
+				return function stop() {
+					unsubscribe?.();
+				};
+			}
+		);
 
-		return state;
+		return subscriptionState;
 	};
 
 	/**
@@ -286,7 +283,7 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 	 *
 	 * @usage
 	 * ```ts
-	 * const { data, error, isLoading, isSubscribed } = useSubscription({
+	 * const { data, error, isLoading, subscriptionState } = createSubscription({
 	 *   operationName: 'Countdown',
 	 * })
 	 */
@@ -309,12 +306,9 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 			onError
 		});
 
-		const isSubscribed = subscriptionState
-
 		return {
 			...subscription,
-			// TODO: set actual value
-			isSubscribed: false
+			subscriptionState
 		};
 	};
 
