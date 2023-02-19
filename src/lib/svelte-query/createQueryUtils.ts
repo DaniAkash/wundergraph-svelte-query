@@ -3,9 +3,11 @@ import {
 	createMutation as tanstackCreateMutation,
 	useQueryClient
 } from '@tanstack/svelte-query';
+import { writable } from 'svelte/store';
+import { onMount, onDestroy } from 'svelte';
 import type { QueryFunctionContext } from '@tanstack/svelte-query';
 import type { OperationsDefinition, LogoutOptions, Client } from '@wundergraph/sdk/client';
-// import { serialize } from '@wundergraph/sdk/internal';
+import { serialize } from '@wundergraph/sdk/internal';
 import type {
 	CreateFileUpload,
 	CreateMutation,
@@ -210,7 +212,6 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 	const createSubscribeTo = (props: CreateSubscribeToProps) => {
 		const client = useQueryClient();
 		const {
-			queryHash,
 			operationName,
 			input,
 			enabled,
@@ -221,7 +222,61 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 			onError
 		} = props;
 
-		//TODO: Svelte style utility to setup subscriptions
+		let startedAtRef: number | null = null;
+		let unsubscribe: ReturnType<typeof subscribeTo>;
+
+		const state = writable({
+			isLoading: false,
+			isSubscribed: false
+		});
+
+		onMount(() => {
+			if (!startedAtRef && resetOnMount) {
+				client.removeQueries([operationName, input]);
+			}
+		});
+
+		if (enabled) {
+			state.set({ isLoading: true, isSubscribed: false });
+			unsubscribe = subscribeTo({
+				operationName,
+				input,
+				liveQuery,
+				subscribeOnce,
+				onError(error) {
+					state.set({ isLoading: false, isSubscribed: false });
+					onError?.(error);
+					startedAtRef = null;
+				},
+				onResult(result) {
+					if (!startedAtRef) {
+						state.set({ isLoading: false, isSubscribed: true });
+						onSuccess?.(result);
+						startedAtRef = new Date().getTime();
+					}
+
+					// Promise is not handled because we are not interested in the result
+					// Errors are handled by React Query internally
+					client.setQueryData([operationName, input], () => {
+						if (result.error) {
+							throw result.error;
+						}
+
+						return result.data;
+					});
+				},
+				onAbort() {
+					state.set({ isLoading: false, isSubscribed: false });
+					startedAtRef = null;
+				}
+			});
+		}
+
+		onDestroy(() => {
+			unsubscribe?.();
+		});
+
+		return state;
 	};
 
 	/**
@@ -237,23 +292,24 @@ export default function createQueryUtils<Operations extends OperationsDefinition
 	 */
 	const createSubscription: CreateSubscription<Operations> = (options) => {
 		const { enabled = true, operationName, input, subscribeOnce, onSuccess, onError } = options;
-		// const queryHash = serialize([operationName, input]);
+		const queryHash = serialize([operationName, input]);
 
 		const subscription = tanstackCreateQuery<any, any, any, any>({
 			queryKey: [operationName, input],
 			enabled: false // we update the cache async
 		});
 
-		// TODO: Learn about how to build subscription utility in svelte
-		// const { isSubscribed } = useSubscribeTo({
-		// 	queryHash,
-		// 	operationName,
-		// 	input,
-		// 	subscribeOnce,
-		// 	enabled,
-		// 	onSuccess,
-		// 	onError
-		// });
+		const subscriptionState = createSubscribeTo({
+			queryHash,
+			operationName,
+			input,
+			subscribeOnce,
+			enabled,
+			onSuccess,
+			onError
+		});
+
+		const isSubscribed = subscriptionState
 
 		return {
 			...subscription,
