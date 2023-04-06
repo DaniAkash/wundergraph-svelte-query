@@ -1,7 +1,0 @@
-query Characters {
-     starwars_allPeople {
-      people {
-        name
-      }
-    }
-}
