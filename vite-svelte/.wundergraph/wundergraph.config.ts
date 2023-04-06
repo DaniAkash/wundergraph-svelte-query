@@ -7,9 +7,14 @@ const countries = introspect.graphql({
 	url: 'https://countries.trevorblades.com/',
 });
 
+const spaceX = introspect.graphql({
+	apiNamespace: 'spacex',
+	url: 'https://spacex-api.fly.dev/graphql/',
+});
+
 // configureWunderGraph emits the configuration
 configureWunderGraphApplication({
-	apis: [countries],
+	apis: [countries, spaceX],
 	server,
 	operations,
 	codeGenerators: [
@@ -25,9 +30,9 @@ configureWunderGraphApplication({
 		allowedOrigins:
 			process.env.NODE_ENV === 'production'
 				? [
-						// change this before deploying to production to the actual domain where you're deploying your app
-						'http://localhost:3000',
-				  ]
+					// change this before deploying to production to the actual domain where you're deploying your app
+					'http://localhost:3000',
+				]
 				: ['http://localhost:3000', new EnvironmentVariable('WG_ALLOWED_ORIGIN')],
 	},
 	security: {

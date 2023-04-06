@@ -1,31 +1,40 @@
 <script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+  import svelteLogo from "./assets/svelte.svg";
+  import Dragons from "./components/Dragons.svelte";
+  import viteLogo from "/vite.svg";
+  import { QueryClient, QueryClientProvider } from "@tanstack/svelte-query";
+
+  const queryClient = new QueryClient();
 </script>
 
 <main>
-  <div>
-    <a href="https://vitejs.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>Vite + Svelte</h1>
+  <QueryClientProvider client={queryClient}>
+    <div>
+      <a href="https://vitejs.dev" target="_blank" rel="noreferrer">
+        <img src={viteLogo} class="logo" alt="Vite Logo" />
+      </a>
+      <a href="https://svelte.dev" target="_blank" rel="noreferrer">
+        <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
+      </a>
+    </div>
+    <h1>Vite + Svelte</h1>
 
-  <div class="card">
-    <Counter />
-  </div>
+    <div class="card">
+      <Dragons />
+    </div>
 
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
+    <p>
+      Check out <a
+        href="https://github.com/sveltejs/kit#readme"
+        target="_blank"
+        rel="noreferrer">SvelteKit</a
+      >, the official Svelte app framework powered by Vite!
+    </p>
 
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
+    <p class="read-the-docs">
+      Click on the Vite and Svelte logos to learn more
+    </p>
+  </QueryClientProvider>
 </main>
 
 <style>
