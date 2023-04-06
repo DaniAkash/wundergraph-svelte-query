@@ -2,7 +2,7 @@
 	"name": "sveltekit",
 	"version": "0.0.1",
 	"scripts": {
-		"dev": "npm run build && concurrently \"npm run wundergraph\" \"vite --port 3000\" \"npm run browser\"",
+		"dev": "concurrently \"npm run wundergraph\" \"vite --port 3000\" \"npm run browser\"",
 		"build": "npm run build:wundergraph && vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
