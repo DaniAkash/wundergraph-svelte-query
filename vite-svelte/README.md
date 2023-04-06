@@ -1,6 +1,6 @@
-# Svelte + TS + Vite
+# WunderGraph + Svelte Query + TS + Vite
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+This template should help get you started developing with Svelte Query and TypeScript in Vite using WunderGraph.
 
 ## Recommended IDE Setup
 
@@ -45,3 +45,9 @@ If you have state that's important to retain within a component, consider creati
 import { writable } from 'svelte/store'
 export default writable(0)
 ```
+
+## Deploy to WunderGraph Cloud
+
+[![Deploy to WunderGraph](https://wundergraph.com/button)](https://cloud.wundergraph.com/new/clone?templateName=vite-solidjs)
+
+You can deploy the `dist` folder to any static host provider (vercel, netlify, surge, now, etc.)
