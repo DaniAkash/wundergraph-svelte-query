@@ -6,6 +6,41 @@ This template should help get you started developing with Svelte Query and TypeS
 
 [VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
 
+## Using WunderGraph
+
+```ts
+// In lib/wundergraph
+import { createSvelteClient } from '@wundergraph/svelte-query'
+import { createClient } from '../../.wundergraph/generated/client'
+import type { Operations } from '../../.wundergraph/generated/client'
+
+const client = createClient()
+
+const { createFileUpload, createMutation, createQuery, createSubscription, getAuth, getUser, queryKey } = createSvelteClient<Operations>(client)
+
+export { createFileUpload, createMutation, createQuery, createSubscription, getAuth, getUser, queryKey }
+```
+
+```svelte
+<script lang="ts">
+    import { createQuery } from "../lib/wundergraph";
+
+    const dragonsQuery = createQuery({
+        operationName: "Dragons",
+    });
+</script>
+
+<div class="results">
+    {#if $dragonsQuery.isLoading}
+        <p>Loading...</p>
+    {:else if $dragonsQuery.error}
+        <pre>Error: {JSON.stringify($dragonsQuery.error, null, 2)}</pre>
+    {:else}
+        <pre>{JSON.stringify($dragonsQuery.data, null, 2)}</pre>
+    {/if}
+</div>
+```
+
 ## Need an official Svelte framework?
 
 Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
